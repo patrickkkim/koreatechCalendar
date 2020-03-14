@@ -1,0 +1,29 @@
+{% extends "calendars/base.html" %}
+
+{% block head %}
+    {% load static %}
+    <script>
+        var csrftoken = "{{ csrf_token }}";
+    </script>
+    <!-- Load React. -->
+    <!-- Note: when deploying, replace "development.js" with "production.min.js". -->
+    <script src="https://unpkg.com/react@16/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js" crossorigin></script>
+    <script src="{% static 'calendar_react.js' %}"></script>
+    <title>Welcome!</title>
+{% endblock %}
+
+{% block body %}
+    {% if login %}
+        <div id="login"></div>
+        <div class="border border-info m-5 p-5">
+            <div id="calendarFrame" class="mt-4 mb-5 card-group-fluid ">
+            </div>
+        </div>
+        <a href="{% url 'logout' %}" class="btn btn-outline-secondary ml-5 mb-5">로그아웃</a>
+        <a href="" class="btn btn-primary mb-5 ml-3">작성</a>
+    {% else %}
+        <a href="{% url 'loginView' %}" id="login">로그인</a>
+        <a href="{% url 'registerView' %}" id="register">회원가입</a>
+    {% endif %}
+{% endblock %}

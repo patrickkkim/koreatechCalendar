@@ -15,10 +15,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from calendars import urls
+from django.conf.urls import url
+from calendars.urls import router as calRouter
+from users import urls as userUrls
+from rest_framework import routers
+
+router = routers.DefaultRouter()
+router.registry.extend(calRouter.registry)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('calendars.urls')),
-    path('', include('users.urls')),
+    path("user/", include(userUrls)),
+    url(r"^", include(router.urls)),
 ]

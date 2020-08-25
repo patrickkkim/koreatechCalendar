@@ -1,11 +1,13 @@
-from django.urls import include, path
+from rest_framework import routers
 from . import views
 
-urlpatterns = [
-    path("", views.index, name="index"),
-    path("login", views.loginView, name="loginView"),
-    path("register", views.registerView, name="registerView"),
-    path("getevent", views.getEvent, name="getEvent"),
-    path("updatelike", views.updateLike, name="updateLike"),
-    path("getuserlike", views.getUserLike, name="getUserLike"),
-]
+router = routers.DefaultRouter()
+router.register(r"eventsbydate", views.EventByDateView, "eventDate")
+router.register(r"events", views.EventView, "event")
+router.register(r"votes", views.VoteView, "vote")
+router.register(r"updatevote", views.UpdateVoteView, "updateVote")
+router.register(r"eventbysearch", views.EventBySearchView, "eventSearch")
+router.register(r"comments", views.CommentsView, "comments")
+router.register(r"authenticate", views.UserAuthenticateView, "auth")
+
+urlpatterns = router.urls

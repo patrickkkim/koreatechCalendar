@@ -1,27 +1,22 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate
-from django.contrib.auth import login as auth_login
-from django.contrib.auth import logout as auth_logout
 from django.http import Http404
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.authtoken.models import Token
+from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 User = get_user_model()
 
 # Create your views here.
-def login(request):
-    if request.method != "POST":
-        raise Http404
-    username = request.POST["username"]
-    password = request.POST["password"]
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        auth_login(request, user)
-        return redirect("index")
-    else:
-        raise Http404
-
-def logout(request):
-    auth_logout(request)
-    return redirect("index") 
+class Logout(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request, format=None):
+        try:
+            request.auth.delete()
+            return Response(status=status.HTTP_200_OK, data={"success": True})
+        except(AttributeError):
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
 def register(request):
     if request.method != "POST":

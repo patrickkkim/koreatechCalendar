@@ -80,7 +80,11 @@ export class LogoutModal extends React.Component {
       window.location.href = "/"
     })
     .catch(error => {
+      localStorage.setItem("token", null);
+      localStorage.setItem("key", null);
+      localStorage.setItem("isLoggedIn", "false");
       alert(error.response.status);
+      window.location.href = "/"
     });
   }
 

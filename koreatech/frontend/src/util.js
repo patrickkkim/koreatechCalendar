@@ -138,7 +138,7 @@ export function renderTag(tag) {
       case "etc":
         color = "secondary"; string = "기타"; break;
       default:
-        color = null; string = null;
+        color = "dark"; string = null;
     }
     return {color: color, string: string};
   }
@@ -217,4 +217,10 @@ export function isDateEqual(date1, date2=null) {
     + date2.getMonth() + date2.getDate();
 
   return (date1Str === date2Str ? true : false);
+}
+
+export function getFormattedDate(date) {
+  const tzoffset = new Date().getTimezoneOffset() * 60000;
+  const formDate = new Date(date - tzoffset).toISOString().substr(0,10);
+  return formDate;
 }

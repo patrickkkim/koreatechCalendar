@@ -202,10 +202,10 @@ export class Event extends React.Component {
     const tagObj = renderTag(this.props.event.tag);
     return (
       <Card outline color="light" 
-      className="shadow rounded pt-2 px-2 mb-3 mx-auto"
+      className="shadow pt-2 px-2 mb-3 mx-auto"
       onMouseOver={() => this.setState({mouseOver: true})} 
       onMouseOut={() => this.setState({mouseOver: false})}
-      style={{backgroundColor: this.state.mouseOver ? "#f1f1f4" : "#fafafb"}}>
+      style={{backgroundColor: this.state.mouseOver ? "#efeff0" : "#fafafb"}}>
         <Link to={{
           pathname: "/notepage",
           search: "?id=" + this.props.event.id,

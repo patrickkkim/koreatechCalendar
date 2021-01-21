@@ -382,8 +382,8 @@ export class PostModal extends React.Component {
 }
 
 export class FullEventModal extends React.Component {
-  // PROPS: toggle, handleClose, 
-  // events, votes, date
+  // PROPS: toggle, handleClose, onClosed
+  // events, votes, date, toggleAlert
 
   renderEvents() {
     if (!this.props.events || !this.props.votes) {
@@ -394,7 +394,7 @@ export class FullEventModal extends React.Component {
         {this.props.events.map((event, index) => 
           <Event event={event} vote={this.props.votes.find(
             vote => vote.event_id === event.id
-          )} key={event.id.toString() + ";더보기"} />
+          )} key={event.id.toString() + ";더보기"} toggleAlert={this.props.toggleAlert} />
         )}
       </React.Fragment>
     );
@@ -402,7 +402,7 @@ export class FullEventModal extends React.Component {
 
   render() {
     return (
-      <Modal isOpen={this.props.toggle} size="lg">
+      <Modal isOpen={this.props.toggle} onClosed={this.props.onClosed} size="lg">
         <ModalHeader style={{backgroundColor: "#f6f6f7"}}>
           {renderDateAsString("fullString", this.props.date)}
         </ModalHeader>

@@ -16,7 +16,6 @@ User = get_user_model()
 
 # Create your views here.
 def getUser(userHeader):
-    print(userHeader)
     userKey = userHeader.split("Token ")[1]
     userId = Token.objects.filter(key=userKey).values().first()["user_id"]
     user = User.objects.get(pk=userId)
@@ -119,6 +118,18 @@ class EventView(viewsets.ModelViewSet):
             Event.objects.filter(pk=eventId, user=user).delete()
         return Response(status=status.HTTP_200_OK)
 
+class EventByUserCalendarView(viewsets.ModelViewSet):
+    serializer_class = EventSerializer
+
+    def get_queryset(self):
+        userHeader = self.request.META.get("HTTP_AUTHORIZATION")
+        user = getUser(userHeader)
+        startDate = stripDate(self.request.query_params.get("startDate"))
+        endDate = stripDate(self.request.query_params.get("endDate"))
+        savedEvents = Event.objects.filter(votedEvent__user=user, votedEvent__saved=True,
+            startDate__range=(startDate, endDate))
+        return savedEvents
+
 class VoteView(viewsets.ModelViewSet):
     serializer_class = VoteSerializer
 
@@ -142,7 +153,6 @@ class UpdateVoteView(viewsets.ModelViewSet):
     def create(self, request):
         eventId = request.data.get("eventId")
         clicked = request.data.get("clicked")
-        save = request.data.get("save")
 
         if request.method != "POST":
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -150,17 +160,22 @@ class UpdateVoteView(viewsets.ModelViewSet):
         user = getUser(userHeader)
         vote = EventVote.objects.filter(user=user, event=eventId)
         event = Event.objects.get(pk=eventId)
+        value = 0
         if not event:
             return Response(status=status.HTTP_400_BAD_REQUEST)
         elif not vote:
-            EventVote.objects.create(user=user, 
-                value=(0 if clicked == 2 else clicked), 
-                saved=save, event=event)
+            value = 0 if clicked == 2 else clicked
+            EventVote.objects.create(user=user, value=value, 
+                saved=(True if clicked == 2 else False), event=event)
+            vote = EventVote.objects.filter(user=user, event=eventId)
         elif clicked == 2:
+            if vote.values("saved").first()["saved"]:
+                save = False
+            else:
+                save = True
             vote.update(saved=save)
         else:
             voteValues = vote.values('value', 'saved').first()
-            vote.update(value=clicked)
             if clicked == -1:
                 if voteValues["value"] == -1:
                     value = 1
@@ -169,12 +184,14 @@ class UpdateVoteView(viewsets.ModelViewSet):
                         vote.delete()
                 elif voteValues["value"] == 1:
                     value = -2
+                    vote.update(value=-1)
                 else:
                     value = -1
+                    vote.update(value=-1)
             elif clicked == 1:
-                vote.update(value=clicked)
                 if voteValues["value"] == -1:
                     value = 2
+                    vote.update(value=1)
                 elif voteValues["value"] == 1:
                     value = -1
                     vote.update(value=0)
@@ -182,11 +199,14 @@ class UpdateVoteView(viewsets.ModelViewSet):
                         vote.delete()
                 else:
                     value = 1
+                    vote.update(value=1)
             else:
                 return Response(status=status.HTTP_400_BAD_REQUEST)
-            Event.objects.filter(pk=eventId).update(
-            likeCount=(event.likeCount + value))
-        return Response(status=status.HTTP_200_OK)
+        Event.objects.filter(pk=eventId).update(likeCount=(event.likeCount + value))
+        return Response(status=status.HTTP_200_OK, data={
+                "likeCount": (event.likeCount + value),
+                "vote": vote.values("value", "saved").first(),
+            })
 
 class EventByDateView(viewsets.ModelViewSet):
     serializer_class = EventSerializer
@@ -196,7 +216,7 @@ class EventByDateView(viewsets.ModelViewSet):
         endDate = self.request.query_params.get("endDate")
         startDate = stripDate(startDate)
         endDate = stripDate(endDate)
-        events = Event.objects.filter(endDate__range=(
+        events = Event.objects.filter(startDate__range=(
             startDate, endDate))
 
         return events
@@ -301,13 +321,22 @@ class UserAuthenticateView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         userHeader = self.request.META.get("HTTP_AUTHORIZATION")
-        if userHeader:
-            userKey = userHeader.split("Token ")[1]
-        else:
-            return None
-        userId = Token.objects.filter(key=userKey).values().first()["user_id"]
-        user = User.objects.filter(pk=userId)
+        if not userHeader:
+            raise NotFound("User not logged in")
+        user = getUser(userHeader)
+        eventId = self.request.query_params.get("eventId")
+        event = Event.objects.filter(pk=eventId)
+        eventUser = event.values("user__pk", "user__username").first()
+        user = User.objects.filter(pk=user.pk)
         return user
+
+    def list(self, request):
+        userHeader = self.request.META.get("HTTP_AUTHORIZATION")
+        user = getUser(userHeader)
+        eventId = self.request.query_params.get("eventId")
+        event = Event.objects.filter(pk=eventId)
+        eventUser = event.values("user__pk", "user__username").first()
+        return Rseponse(status=status.HTTP_200_OK, data=user.nickname)
 
     def patch(self, request, *args, **kwargs):
         newPassword = request.data.get("newPassword")

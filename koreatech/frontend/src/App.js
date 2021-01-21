@@ -7,7 +7,7 @@ import SearchPageApp from './SearchPage';
 import CalendarPageApp from './CalendarPage'
 import { 
   ModalTemplate, renderTag, renderDateAsString, AlertWindow, 
-  isDateEqual,
+  isDateEqual, getUserHeaders, getFormattedDate
 } from './util.js';
 import { 
   LoginModal, LogoutModal, BugReportModal, PostModal, FullEventModal,
@@ -89,61 +89,45 @@ export class Event extends React.Component {
   }
 
   handleVoteClick = (e) => {
-    if (localStorage.getItem("isLoggedIn") === "false") {
+    if (getUserHeaders() === false) {
       this.props.toggleAlert("회원만 투표할 수 있습니다! 로그인 혹은 회원가입을 해주세요.")
       return;
     }
     let clicked = parseInt(e.currentTarget.value);
-    let save = false;
-    let value;
-    if (clicked === 1) {
-      if (this.state.hateToggled) {
-        this.setState({hateToggled: false});
-        value = 2;
-      }
-      else if (this.state.likeToggled) {
-        clicked = -1;
-        value = -1;
-      }
-      else {
-        value = 1;
-      }
-      this.setState({likeToggled: !this.state.likeToggled});
-    }
-    else if (clicked === -1) {
-      if (this.state.likeToggled) {
-        this.setState({likeToggled: false});
-        value = -2;
-      }
-      else if (this.state.hateToggled) {
-        clicked = -1;
-        value = 1;
-      }
-      else {
-        value = -1;
-      }
-      this.setState({hateToggled: !this.state.hateToggled});
-    }
-    else if (clicked === 2) {
-      value = 0;
-      if (this.state.saveToggled) {
-        save = false;
-      }
-      else {
-        save = true;
-      }
-      this.setState({saveToggled: !this.state.saveToggled});
-    }
-    this.setState({likeCount: (this.state.likeCount + value)});
+    
     axios({
       method: 'post',
       url: '/updatevote/',
       data: {
         eventId: this.props.event.id,
         clicked: clicked,
-        save: save,
       },
       headers: {"Authorization": "Token " + JSON.parse(localStorage.getItem("key"))},
+    })
+    .then(response => response)
+    .then(result => {
+      this.setState({likeCount: result.data["likeCount"]});
+      const voteData = result.data["vote"];
+      if (voteData === null) {
+        this.setState({hateToggled: false, likeToggled: false, saveToggled: false})
+      } else {
+        let likeToggled;
+        let hateToggled;
+        if (voteData["value"] === 1) {
+          likeToggled = true; 
+          hateToggled = false;
+        } else if (voteData["value"] === -1) {
+          likeToggled = false;
+          hateToggled = true;
+        } else if (voteData["value"] === 0) {
+          likeToggled = false;
+          hateToggled = false;
+        } else {
+          return false;
+        }
+        this.setState({likeToggled: likeToggled, hateToggled: hateToggled, 
+          saveToggled: voteData["saved"]});
+      }
     })
     .catch(error => alert(error));
   }
@@ -359,13 +343,12 @@ class BoxLayout extends React.Component {
   }
 
   getVotes(dateObj) {
-    const headers = {"Authorization": "Token " + JSON.parse(localStorage.getItem("token")).key}
+    const headers = getUserHeaders();
     axios.get("votes/", {
       params: {
         startDate: dateObj["startDate"],
         endDate: dateObj["endDate"],
-      },
-      headers
+      }, headers
     })
     .then(response => response)
     .then(result => {
@@ -379,8 +362,8 @@ class BoxLayout extends React.Component {
   filterEventByDate(date) {
     const events = [];
     for (let i = 0; i < this.state.events.length; ++i) {
-      const eventDate = this.state.events[i].endDate;
-      const inputDate = new Date(date - this.tzoffset).toISOString().substr(0,10);
+      const eventDate = this.state.events[i].startDate;
+      const inputDate = getFormattedDate(date);
       if (eventDate === inputDate) {
         events.push(this.state.events[i]);
       }
@@ -391,9 +374,8 @@ class BoxLayout extends React.Component {
   renderDateObj(loadCount) {
     let dateObj = {};
     const curDate = new Date();
-    const startDate = new Date(curDate.setDate(
-      curDate.getDate() + loadCount));
-    dateObj.startDate = new Date(startDate - this.tzoffset).toISOString().slice(0,10);
+    const startDate = new Date(curDate.setDate(curDate.getDate() + loadCount));
+    dateObj.startDate = getFormattedDate(startDate)
     const endDate = new Date(startDate.setDate(startDate.getDate()
       + this.props.maxLoad - 1));
     dateObj.endDate = new Date(endDate - this.tzoffset).toISOString().slice(0,10);
@@ -471,6 +453,9 @@ class NavBarLayout extends React.Component {
           <Nav navbar>
             <NavItem>
               <NavLink tag={Link} to="/searchpage">검색</NavLink>
+            </NavItem>
+            <NavItem>
+              <NavLink tag={Link} to="/calendarpage">달력</NavLink>
             </NavItem>
             {localStorage.getItem("isLoggedIn") === "false" ? (
               <React.Fragment>
@@ -687,7 +672,7 @@ class App extends React.Component {
             <RegisterApp />
           </Route>
           <Route path="/mypage">
-            <MyPageApp />
+            <MyPageApp toggleAlert={this.toggleAlert} />
           </Route>
           <Route path="/notepage">
             <NotepageApp />
@@ -696,7 +681,7 @@ class App extends React.Component {
             <SearchPageApp toggleAlert={this.toggleAlert} />}
           />
           <Route path="/calendarpage">
-            <CalendarPageApp />
+            <CalendarPageApp toggleAlert={this.toggleAlert} />
           </Route>
           <Route path="/">
             {this.renderMainPage()}

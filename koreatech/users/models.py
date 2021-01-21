@@ -8,3 +8,6 @@ class User(AbstractUser):
         RegexValidator(r'^\d{1,11}$')
     ], unique=True)
     nickname = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return f"id: {self.pk}, username: {self.username}, nickname: {self.nickname}"

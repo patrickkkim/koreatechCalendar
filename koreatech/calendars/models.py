@@ -41,7 +41,7 @@ class EventVote(models.Model):
         on_delete=models.CASCADE, null=True)
         
     def __str__(self):
-        return f"{self.user} voted {self.value}, saved: {self.saved}"
+        return f"{self.user} voted for {self.event.note}, {self.value}, saved: {self.saved}"
 
 class CommentVote(models.Model):
     value = models.IntegerField(null=True, blank=True)

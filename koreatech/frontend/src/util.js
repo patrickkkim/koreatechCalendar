@@ -224,3 +224,12 @@ export function getFormattedDate(date) {
   const formDate = new Date(date - tzoffset).toISOString().substr(0,10);
   return formDate;
 }
+
+export function getUserHeaders() {
+  if (JSON.parse(localStorage.getItem("token")) === null) {
+    return false;
+  }
+  const headers = {"Authorization": "Token " + 
+    JSON.parse(localStorage.getItem("token")).key};
+  return headers;
+}

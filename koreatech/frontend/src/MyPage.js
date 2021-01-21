@@ -1,14 +1,15 @@
 import React from 'react';
 import axios from 'axios';
-import { renderDateAsString } from './util.js';
+import { renderTag, renderDateAsString, getUserHeaders } from './util.js';
 import { 
   NicknameChangeModal, PasswordChangeModal, AccountDeleteModal,
 } from './Modal';
 import { Event } from './App.js';
+import { BigCalendar } from './CalendarPage.js';
 import { Switch, Route, Link, useRouteMatch } from "react-router-dom";
 import {
   Button, FormText, Label, Container, Nav, NavItem, NavLink, InputGroupButtonDropdown,
-  Input, Col, Row
+  Input, Col, Row, Badge
 } from 'reactstrap';
 
 class Utilities {
@@ -352,6 +353,86 @@ class ManageCommentBox extends React.Component {
   }
 }
 
+class MyCalendar extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      events: [],
+      votes: [],
+      fetching: true,
+      fetchingVote: true,
+    }
+    this.getEvents = this.getEvents.bind(this);
+    this.getVotes = this.getVotes.bind(this);
+  }
+
+  getEvents(startDate, endDate) {
+    const headers = getUserHeaders();
+    axios.get("/eventbyusercalendar/", {
+      params: {
+        startDate: startDate,
+        endDate: endDate,
+      }, headers
+    })
+    .then(response => response)
+    .then(result => {
+      this.setState({events: result.data, fetching: false})
+    })
+    .catch(error => alert(error))
+  }
+
+  getVotes(startDate, endDate) {
+    const headers = getUserHeaders();
+    if (!headers) {
+      return;
+    }
+    axios.get("/votes/", {
+      params: {
+        startDate: startDate,
+        endDate: endDate,
+      }, headers
+    })
+    .then(response => response)
+    .then(result => {
+      this.setState({votes: result.data, fetchingVote: false});
+    })
+    .catch(error => {
+      alert(error);
+    })
+  }
+
+  renderEvent(events) {
+    if (events === false) {
+      return;
+    }
+    return (
+      <div>
+        {events.map( event => {
+          return (
+            <Badge className="d-inline-block" key={event.id} 
+            color={renderTag(event.tag)["color"]} pill>‏‏‎!</Badge>
+          );}
+        )}
+      </div>
+    );
+  }
+
+  render() {
+    return (
+      <Container className="col-6 d-flex justify-content-center">
+        <div className="my-5 px-5 pb-5 border" 
+        style={{backgroundColor: "white", minWidth: "800px"}}>
+          {Utilities.renderBigTitle("마이 캘린더")}
+          {Utilities.renderCategoryBorder()}
+          <BigCalendar toggleAlert={this.props.toggleAlert} getEvents={this.getEvents}
+          getVotes={this.getVotes} events={this.state.events} votes={this.state.votes}
+          fetching={this.state.fetching} renderEvent={this.renderEvent} />
+        </div>
+      </Container>
+    );
+  }
+}
+
 function SideMenuBox() {
   let match = useRouteMatch();
   return (
@@ -371,6 +452,15 @@ function SideMenuBox() {
         </NavItem>
         <NavItem>
           <NavLink tag={Link} to={`${match.url}/comments`}>댓글 관리</NavLink>
+        </NavItem>
+        <NavItem>
+          <p className="my-4 ml-3 h5">일정 관리</p>
+        </NavItem>
+        <NavItem>
+          <div className="mx-3 mb-3 border"></div>
+        </NavItem>
+        <NavItem>
+          <NavLink className="mb-3" tag={Link} to={`${match.url}/mycalendar`}>마이 캘린더</NavLink>
         </NavItem>
       </Nav>
      </div>
@@ -392,6 +482,9 @@ function MyPageApp() {
             </Route>
             <Route path={`${match.url}/comments`}>
               <ManageCommentBox />
+            </Route>
+            <Route path={`${match.url}/mycalendar`}>
+              <MyCalendar />
             </Route>
             <Route path={`${match.url}`}>
               <InfoBox />

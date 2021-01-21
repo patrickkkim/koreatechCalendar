@@ -4,7 +4,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './customcalendar.css';
 import { PostDeleteModal, PostModal, } from './Modal.js'
-import { renderTag, getDateDifference, isDateEqual } from './util.js'
+import { renderTag, getDateDifference, isDateEqual, getUserHeaders } from './util.js'
 import {
   Label, Container, Media, Form, FormGroup, Input, Button, Tooltip,
   Badge,
@@ -273,23 +273,19 @@ class BoxLayout extends React.Component {
 
   componentDidMount() {
     this.getEvent();
-    this.authenticateUser();
   }
 
   authenticateUser() {
-    if (JSON.parse(localStorage.getItem("key")) === null) {
-      this.setState({authenticating: false});
-      return;
-    }
-    const headers = {"Authorization": "Token " + 
-      JSON.parse(localStorage.getItem("key"))}
+    const headers = getUserHeaders();
     axios.get("/authenticate", {
-      headers: headers,
+      params: {
+        eventId: this.state.event.id,
+      }, headers
     })
     .then(result => {
-      this.setState({user: result.data[0], authenticating: false});
+      this.setState({user: result.data[0],authenticating: false});
     }).catch(error => {
-      console.log(error);
+      alert(error);
     });
   }
 
@@ -304,7 +300,8 @@ class BoxLayout extends React.Component {
       })
       .then(response => response)
       .then(result => {
-        this.setState({event: result.data[0], fetching: false});
+        this.setState({event: result.data[0], fetching: false}, 
+          () => this.authenticateUser());
       }).catch(error => alert(error));
     }
     else {

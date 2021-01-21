@@ -4,6 +4,7 @@ from . import views
 router = routers.DefaultRouter()
 router.register(r"eventsbydate", views.EventByDateView, "eventDate")
 router.register(r"events", views.EventView, "event")
+router.register(r"eventbyusercalendar", views.EventByUserCalendarView, "userCalendar")
 router.register(r"votes", views.VoteView, "vote")
 router.register(r"updatevote", views.UpdateVoteView, "updateVote")
 router.register(r"eventbysearch", views.EventBySearchView, "eventSearch")
